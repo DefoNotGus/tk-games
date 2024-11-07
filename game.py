@@ -1,6 +1,7 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 from PIL import Image, ImageTk
+import time
 
 class GameApp:
     def __init__(self, root):
@@ -8,6 +9,8 @@ class GameApp:
         self.root.title("Fun Game")
         self.root.geometry("400x300")
         self.score = 0  # Initialize the score
+        self.start_time = None
+        self.player_name = ""
 
         # Main menu setup
         self.main_menu()
@@ -22,15 +25,32 @@ class GameApp:
         title.pack(pady=20)
 
         # Start Button
-        start_button = tk.Button(self.root, text="Start", command=self.start_level_1, font=("Arial", 14))
+        start_button = tk.Button(self.root, text="Start", command=self.get_player_name, font=("Arial", 14))
         start_button.pack(pady=10)
 
         # Score Button
         score_button = tk.Button(self.root, text="Score", command=self.show_score, font=("Arial", 14))
         score_button.pack(pady=10)
 
+    def get_player_name(self):
+        # Prompt for the player's name
+        self.player_name = simpledialog.askstring("Name", "Enter your name:")
+        if self.player_name:
+            self.start_time = time.time()  # Start the timer
+            self.start_level_1()
+
     def show_score(self):
-        messagebox.showinfo("Score", f"Your current score is: {self.score}")
+        # Read scores from score.txt and display them sorted by time
+        try:
+            with open("score.txt", "r") as file:
+                scores = [line.strip().split(",") for line in file]
+            # Sort scores by time (second column, as float)
+            scores.sort(key=lambda x: float(x[1]))
+            # Display scores
+            score_message = "\n".join([f"{name}: {time}s" for name, time in scores])
+            messagebox.showinfo("Scores", score_message)
+        except FileNotFoundError:
+            messagebox.showinfo("Scores", "No scores recorded yet.")
 
     def start_level_1(self):
         # Move to level 1
@@ -136,10 +156,18 @@ class GameApp:
 
         if x_start <= event.x <= x_end and y_start <= event.y <= y_end:
             self.score += 1
+            end_time = time.time()
+            time_taken = round(end_time - self.start_time, 2)  # Calculate time taken
             messagebox.showinfo("Found!", "You found the Monkey!")
+            self.save_score(self.player_name, time_taken)
             self.main_menu()  # Return to the main menu
         else:
             messagebox.showinfo("Try Again", "That's not the right spot!")
+
+    def save_score(self, name, time_taken):
+        # Append the player's name and time taken to score.txt
+        with open("score.txt", "a") as file:
+            file.write(f"{name},{time_taken}\n")
 
 # Create the Tkinter window and run the app
 root = tk.Tk()
